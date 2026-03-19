@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alation Diagram Generator (Brand Compliant)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>Alation Diagram Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; background: #f4f5f7; }
         .container { display: flex; gap: 20px; align-items: stretch; }
@@ -28,7 +28,7 @@
         button.primary:hover { background: #D95F22; }
         button.ai-btn { background: #002E4B; color: white; border: none; cursor: pointer; font-weight: 600; width: 100%; padding: 12px; font-size: 16px; }
         button.ai-btn:hover { background: #1A445E; }
-        button.secondary { background: #fff; color: #35444d; cursor: pointer; font-weight: 500;}
+        button.secondary { background: #fff; color: #35444d; cursor: pointer; font-weight: 600;}
         button.secondary:hover { background: #f4f5f7; }
         button.github { background: #35444d; color: white; border: none; cursor: pointer; font-weight: 600; }
         button.github:hover { background: #002E4B; }
@@ -55,7 +55,7 @@
             <div style="flex: 1; min-width: 300px;">
                 <div class="ai-input-group">
                     <label>1. Describe the Architecture (Optional if image provided)</label>
-                    <textarea class="ai-text" id="aiTextInput" placeholder="e.g., 'A user clicks checkout, which triggers the Order Service...'"></textarea>
+                    <textarea class="ai-text" id="aiTextInput" placeholder="e.g., 'A user clicks checkout, which triggers the Order Service. The Order Service checks inventory in the Database...'"></textarea>
                 </div>
             </div>
             <div style="flex: 1; min-width: 300px;">
@@ -90,7 +90,7 @@
     'noteBorderColor': '#FDA600'
   },
   'sequence': { 
-    'actorWidth': 260,
+    'actorWidth': 300,
     'messageMargin': 40
   } 
 }}%%
@@ -135,31 +135,40 @@ sequenceDiagram
 
         let currentSvg = '';
 
-        // ✨ ALATION BRAND SANITIZER FUNCTION
+        // ✨ ULTIMATE ALATION BRAND SANITIZER FUNCTION
         function sanitizeMermaid(code) {
             let cleanCode = code.replace(/^```mermaid\n?/m, '').replace(/```$/m, '').trim();
+            
+            // 1. Fix literal newlines inside quotes (Fixes the compressed boxes glitch)
+            cleanCode = cleanCode.replace(/"([^"]*)"/g, function(match, innerText) {
+                return '"' + innerText.replace(/\r?\n/g, '<br/>') + '"';
+            });
+
+            // 2. Fix spaces inside rgb()
             cleanCode = cleanCode.replace(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/g, 'rgb($1,$2,$3)');
             
-            // Neutralize dangerous angle brackets
+            // 3. Neutralize dangerous angle brackets
             cleanCode = cleanCode.replace(/<tenant>/g, '{tenant}')
                                  .replace(/<metric>/g, '{metric}')
                                  .replace(/<runId>/g, '{runId}')
                                  .replace(/<version>/g, '{version}');
 
+            // 4. Convert Self-Loops to Notes (e.g., Pod->>Pod: Train Model -> Note over Pod: Train Model)
+            cleanCode = cleanCode.replace(/([a-zA-Z0-9_]+)(?:->>|-->>)\1:\s*(.*)/g, 'Note over $1: $2');
+
+            // 5. Force Perfect Box Titles & Colors
             let lines = cleanCode.split('\n');
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].trim().startsWith('box ')) {
-                    lines[i] = lines[i].replace(/\(/g, '[').replace(/\)/g, ']');
-                    
-                    // Force Official Alation 10% Tints
                     if (lines[i].match(/AWS\s*Managed/i)) {
-                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(254,242,233)'); // Orange 10%
+                        lines[i] = '    box rgb(254,242,233) AWS Managed Services'; // Orange 10%
                     } else if (lines[i].match(/AWS\s*Storage/i)) {
-                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(230,234,237)'); // Neo Navy 10%
+                        lines[i] = '    box rgb(230,234,237) AWS Storage'; // Neo Navy 10%
                     } else if (lines[i].match(/Alation\s*SaaS|Compute/i)) {
-                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(255,246,229)'); // Sun Yellow 10%
+                        lines[i] = '    box rgb(255,246,229) Alation SaaS [Compute]'; // Sun Yellow 10%
                     } else {
-                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(244,245,247)'); // Slate Gray 10% Default
+                        lines[i] = lines[i].replace(/\(/g, '[').replace(/\)/g, ']');
+                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|\[[^\]]+\]|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(244,245,247)'); // Slate Gray 10%
                     }
                 }
             }
@@ -179,7 +188,8 @@ sequenceDiagram
 
             statusNode.innerHTML = '<span style="color:#002E4B;">✨ AI is analyzing... securing Alation brand compliance.</span>';
 
-            let promptText = "Write the Mermaid.js sequence diagram code for this architecture. STRICT RULES:\n1. Use 'box rgb(r,g,b)' to group columns. DO NOT use spaces inside the rgb parentheses.\n2. DO NOT use parentheses () in the box titles. Use square brackets [] instead.\n3. Extract all text labels accurately.\n4. Output ONLY the raw Mermaid code. Do NOT wrap it in markdown code blocks like ```mermaid.\n5. NEVER use angle brackets (< >) for variables like tenant or metric. Use curly braces ({ }) instead.\n6. ALL participant aliases MUST be wrapped in double quotes (e.g., participant A as \"Name<br/>Line 2\"). Use <br/> for line breaks, NEVER actual newlines.";
+            let promptText = "Write the Mermaid.js sequence diagram code for this architecture. STRICT RULES:\n1. Use 'box rgb(r,g,b)' to group columns.\n2. DO NOT use parentheses () in the group names. Use square brackets [] instead.\n3. Extract all text labels accurately.\n4. Output ONLY the raw Mermaid code. Do NOT wrap it in markdown.\n5. NEVER use angle brackets (< >) for variables like tenant or metric. Use curly braces ({ }) instead.\n6. ALL participant aliases MUST be wrapped in double quotes (e.g., participant A as \"Name<br/>Line 2\"). You MUST use <br/> for line breaks inside quotes. NEVER use actual Enter/Return newlines inside quotes.\n7. For internal processing steps that do not involve sending data to another system (like 'Train Model' or 'Validate'), DO NOT use self-looping arrows (e.g., A->>A). You MUST use 'Note over [Participant]: [Step]' instead.";
+            
             if (textInput) promptText += `\n\nUser Description:\n${textInput}`;
 
             let parts = [{ text: promptText }];
@@ -197,7 +207,7 @@ sequenceDiagram
                         let safeCode = sanitizeMermaid(rawCode);
 
                         // Official Brand Init Block
-                        const initBlock = `%%{init: { \n  'theme': 'base', \n  'themeVariables': { \n    'fontFamily': 'Public Sans, Open Sans, sans-serif',\n    'actorBkg': '#ffffff', \n    'actorBorder': '#002E4B',\n    'actorTextColor': '#002E4B',\n    'signalColor': '#E36624',\n    'signalTextColor': '#35444D',\n    'noteBkgColor': '#FFF6E5',\n    'noteBorderColor': '#FDA600'\n  },\n  'sequence': { \n    'actorWidth': 260,\n    'messageMargin': 40\n  } \n}}%%\n`;
+                        const initBlock = `%%{init: { \n  'theme': 'base', \n  'themeVariables': { \n    'fontFamily': 'Public Sans, Open Sans, sans-serif',\n    'actorBkg': '#ffffff', \n    'actorBorder': '#002E4B',\n    'actorTextColor': '#002E4B',\n    'signalColor': '#E36624',\n    'signalTextColor': '#35444D',\n    'noteBkgColor': '#FFF6E5',\n    'noteBorderColor': '#FDA600'\n  },\n  'sequence': { \n    'actorWidth': 300,\n    'messageMargin': 40\n  } \n}}%%\n`;
                         
                         editor.value = initBlock + safeCode;
                         statusNode.innerHTML = '<span style="color:#E36624;">✅ Code generated and brand-sanitized!</span>';
