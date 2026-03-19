@@ -134,6 +134,36 @@ sequenceDiagram
         let currentSvg = '';
 
         // --- AI LOGIC (Google Gemini API) ---
+       // --- AI LOGIC (Google Gemini API) ---
+        
+        // ✨ NEW: The Bulletproof Sanitizer Function
+        function sanitizeMermaid(code) {
+            // 1. Remove markdown code blocks if the AI added them
+            let cleanCode = code.replace(/^```mermaid\n?/m, '').replace(/```$/m, '').trim();
+
+            // 2. Fix spaces inside rgb() which breaks Mermaid box parsing
+            cleanCode = cleanCode.replace(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/g, 'rgb($1,$2,$3)');
+
+            // 3. Fix Parentheses in Box Titles & Enforce Brand Colors
+            let lines = cleanCode.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].trim().startsWith('box ')) {
+                    // Replace () with [] in the title line
+                    lines[i] = lines[i].replace(/\(/g, '[').replace(/\)/g, ']');
+                    
+                    // Force Alation Brand Colors if standard columns are detected
+                    if (lines[i].match(/AWS\s*Managed/i)) {
+                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(253,244,240)');
+                    } else if (lines[i].match(/AWS\s*Storage/i)) {
+                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(240,246,250)');
+                    } else if (lines[i].match(/Alation\s*SaaS/i)) {
+                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(253,241,234)');
+                    }
+                }
+            }
+            return lines.join('\n');
+        }
+
         document.getElementById('generateAiBtn').addEventListener('click', async () => {
             const apiKey = document.getElementById('aiApiKey').value.trim();
             const textInput = document.getElementById('aiTextInput').value.trim();
@@ -141,47 +171,36 @@ sequenceDiagram
             const statusNode = document.getElementById('aiStatus');
             const editor = document.getElementById('mermaidInput');
 
-            if (!apiKey) {
-                statusNode.innerHTML = '<span style="color:#BD0909;">Please enter your Gemini API Key.</span>';
-                return;
-            }
-            if (!textInput && !fileInput.files.length) {
-                statusNode.innerHTML = '<span style="color:#BD0909;">Please provide a text description OR upload an image.</span>';
-                return;
-            }
+            if (!apiKey) return statusNode.innerHTML = '<span style="color:#BD0909;">Please enter your Gemini API Key.</span>';
+            if (!textInput && !fileInput.files.length) return statusNode.innerHTML = '<span style="color:#BD0909;">Please provide text OR upload an image.</span>';
 
-            statusNode.innerHTML = '<span style="color:#5fa0d3;">✨ AI is thinking... generating your diagram code.</span>';
+            statusNode.innerHTML = '<span style="color:#5fa0d3;">✨ AI is analyzing... securing diagram consistency.</span>';
 
-            // Construct the dynamic prompt
-            let promptText = "Write the Mermaid.js sequence diagram code to represent the architecture described or shown. Use 'box rgb(r,g,b)' to logically group columns/services if applicable. Extract all text labels accurately. Output ONLY the raw Mermaid code. Do NOT wrap it in markdown code blocks like ```mermaid. Do not provide any conversational text.";
-            if (textInput) {
-                promptText += `\n\nUser Description:\n${textInput}`;
-            }
+            // ✨ UPGRADED STRICT PROMPT
+            let promptText = "Write the Mermaid.js sequence diagram code for this architecture. STRICT RULES:\n1. Use 'box rgb(r,g,b)' to group columns. DO NOT use spaces inside the rgb parentheses.\n2. DO NOT use parentheses () in the box titles. Use square brackets [] instead.\n3. Extract all text labels accurately.\n4. Output ONLY the raw Mermaid code. Do NOT wrap it in markdown code blocks like ```mermaid.";
+            if (textInput) promptText += `\n\nUser Description:\n${textInput}`;
 
             let parts = [{ text: promptText }];
 
-            // Function to handle the actual API call
             const callGeminiApi = async (apiParts) => {
                 const payload = { contents: [{ parts: apiParts }] };
-                
                 try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                     });
-
                     const data = await response.json();
 
                     if (response.ok) {
-                        let generatedCode = data.candidates[0].content.parts[0].text;
-                        generatedCode = generatedCode.replace(/^```mermaid\n?/m, '').replace(/```$/m, '').trim();
+                        let rawCode = data.candidates[0].content.parts[0].text;
+                        
+                        // ✨ PASS THROUGH SANITIZER
+                        let safeCode = sanitizeMermaid(rawCode);
 
                         const initBlock = `%%{init: { \n  'theme': 'base', \n  'themeVariables': { \n    'actorBkg': '#ffffff', \n    'actorBorder': '#5fa0d3',\n    'actorTextColor': '#333333',\n    'signalColor': '#e56f3e',\n    'signalTextColor': '#333333',\n    'noteBkgColor': '#fdf1ea',\n    'noteBorderColor': '#f2b28c'\n  },\n  'sequence': { \n    'actorWidth': 260,\n    'messageMargin': 40\n  } \n}}%%\n`;
                         
-                        editor.value = initBlock + generatedCode;
-                        statusNode.innerHTML = '<span style="color:green;">✅ Code generated! Click "Render Diagram" below if it didn\'t auto-render.</span>';
-                        document.getElementById('generateBtn').click();
+                        editor.value = initBlock + safeCode;
+                        statusNode.innerHTML = '<span style="color:green;">✅ Code generated and sanitized!</span>';
+                        document.getElementById('generateBtn').click(); // Auto-render
                     } else {
                         statusNode.innerHTML = `<span style="color:#BD0909;">❌ API Error: ${data.error.message}</span>`;
                     }
@@ -190,18 +209,14 @@ sequenceDiagram
                 }
             };
 
-            // Check if an image is provided to attach it to the payload
             if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
                 const reader = new FileReader();
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(fileInput.files[0]);
                 reader.onload = () => {
-                    const base64Data = reader.result.split(',')[1];
-                    parts.push({ inline_data: { mime_type: file.type, data: base64Data } });
+                    parts.push({ inline_data: { mime_type: fileInput.files[0].type, data: reader.result.split(',')[1] } });
                     callGeminiApi(parts);
                 };
             } else {
-                // If text only, just call the API immediately
                 callGeminiApi(parts);
             }
         });
