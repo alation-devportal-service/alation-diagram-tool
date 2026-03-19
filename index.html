@@ -5,34 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Alation Diagram Generator</title>
     <style>
-        /* Base UI Styling */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; background: #f9f9f9; }
         .container { display: flex; gap: 20px; }
         .panel { flex: 1; background: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; }
         
-        /* Input Area */
+        /* Pro-Tip Box */
+        details { background: #eaf2f8; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border-left: 4px solid #5fa0d3; }
+        summary { font-weight: bold; cursor: pointer; color: #333; }
+        .pro-tip-content { margin-top: 10px; font-size: 14px; color: #444; }
+        code { background: #fff; padding: 2px 5px; border-radius: 4px; border: 1px solid #ccc; }
+
+        /* Inputs & Controls */
         textarea { width: 100%; height: 300px; font-family: monospace; padding: 10px; box-sizing: border-box; resize: vertical; border: 1px solid #ccc; }
-        
-        /* Controls */
         .controls { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-        select, button { padding: 8px 12px; font-size: 14px; border-radius: 4px; border: 1px solid #ccc; }
+        select, button, input { padding: 8px 12px; font-size: 14px; border-radius: 4px; border: 1px solid #ccc; }
         
-        /* Branded Button using Alation Red */
         button.primary { background: #BD0909; color: white; border: none; cursor: pointer; font-weight: bold; }
         button.primary:hover { background: #8a0707; }
-        
-        /* Output Preview Area */
-        /* Left-aligned per the style guide, max-width 672px for visual reference */
+        button.secondary { background: #fff; color: #333; cursor: pointer; }
+        button.secondary:hover { background: #f0f0f0; }
+        button.github { background: #24292e; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button.github:hover { background: #000; }
+
+        /* Output Area */
         #output-wrapper { margin-top: 20px; border: 1px dashed #ccc; padding: 20px; min-height: 300px; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/O1gwxv///z+AwwgWjEGAcTIahwEAC60KBT72Z3kAAAAASUVORK5CYII='); }
         #output { display: flex; justify-content: flex-start; max-width: 672px; } 
         pre { font-family: monospace; white-space: pre-wrap; margin: 0; }
         .note { font-size: 12px; color: #666; margin-top: 5px; }
+
+        /* GitHub Modal */
+        #github-panel { display: none; margin-top: 15px; padding: 15px; background: #f6f8fa; border: 1px solid #d1d5da; border-radius: 6px; }
+        #github-panel input { width: 100%; margin-bottom: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
     <h1>🎨 Alation Diagram Generator</h1>
     <p>Generate transparent, left-aligned, brand-compliant SVGs for your documentation.</p>
+
+    <details>
+        <summary>💡 Pro-Tip: How to generate Mermaid code from an image</summary>
+        <div class="pro-tip-content">
+            <p>You can use AI (like Gemini, ChatGPT, or Claude) to instantly convert a screenshot of an old architecture diagram into editable Mermaid code.</p>
+            <p><b>Step 1:</b> Upload your screenshot to the AI.<br>
+            <b>Step 2:</b> Paste this exact prompt:<br>
+            <code>Analyze this diagram and write the Mermaid.js code to recreate it. Please extract all the text labels accurately, map the directional arrows correctly, and use subgraphs if there are distinct grouped sections.</code><br>
+            <b>Step 3:</b> Paste the AI's output into the box below and click Generate!</p>
+        </div>
+    </details>
 
     <div class="container">
         <div class="panel">
@@ -53,33 +73,42 @@
                     <option value="nord">Nord</option>
                 </select>
                 <button class="primary" id="generateBtn">Generate Diagram</button>
-                <button id="downloadBtn" style="display:none;">Download File</button>
             </div>
-            <p class="note">Note: Output is constrained to 672px width to preview page loading optimization rules.</p>
+            
+            <div class="controls" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+                <button class="github" id="toggleGitBtn">🐙 Push Code to GitHub Repo</button>
+            </div>
+            <div id="github-panel">
+                <input type="text" id="repoPath" placeholder="org/repo (e.g., alation-devportal/docs)" />
+                <input type="text" id="filePath" placeholder="File path (e.g., diagrams/architecture.mmd)" />
+                <input type="password" id="gitToken" placeholder="GitHub Personal Access Token" />
+                <button class="primary" id="commitBtn" style="width: 100%;">Commit File</button>
+                <p class="note" id="gitStatus"></p>
+            </div>
         </div>
 
         <div class="panel">
             <h3>2. Output</h3>
+            <div class="controls" id="downloadControls" style="display:none; margin-bottom: 10px;">
+                <button class="secondary" id="downloadSvgBtn">⬇️ Download SVG</button>
+                <button class="secondary" id="downloadCodeBtn">⬇️ Download .mmd Code</button>
+            </div>
             <div id="output-wrapper">
                 <div id="output"><span style="color: #888; background: white; padding: 5px;">Preview will appear here...</span></div>
             </div>
+            <p class="note">Note: Output is constrained to 672px width to preview page loading optimization rules.</p>
         </div>
     </div>
 
     <script type="module">
         import { renderMermaidSVG, renderMermaidASCII, THEMES } from 'https://esm.sh/beautiful-mermaid@latest';
 
-        // Define the Custom Alation Theme based on the PDF Style Guide
-        const alationTheme = {
-            bg: '#ffffff',       // Base background (will be made transparent)
-            fg: '#333333',       // Dark grey for standard node text
-            accent: '#BD0909',   // Alation Dark Red for arrows and highlights
-            border: '#888888'    // Subtle grey borders to avoid harsh black lines
-        };
-
+        const alationTheme = { bg: '#ffffff', fg: '#333333', accent: '#BD0909', border: '#888888' };
+        
         let currentResult = '';
         let currentFormat = '';
 
+        // --- RENDER LOGIC ---
         document.getElementById('generateBtn').addEventListener('click', () => {
             const code = document.getElementById('mermaidInput').value;
             const format = document.getElementById('formatSelect').value;
@@ -90,17 +119,8 @@
 
             try {
                 if (format === 'svg') {
-                    // Load chosen theme or fallback to Alation custom theme
                     let activeTheme = themeName === 'alation' ? alationTheme : (THEMES[themeName] || THEMES['github-light']);
-                    
-                    // Force transparent background per style guide
-                    const renderOptions = {
-                        ...activeTheme,
-                        transparent: true 
-                    };
-
-                    const svg = renderMermaidSVG(code, renderOptions);
-                    
+                    const svg = renderMermaidSVG(code, { ...activeTheme, transparent: true });
                     currentResult = svg;
                     currentFormat = 'svg';
                     outputDiv.innerHTML = svg; 
@@ -110,24 +130,96 @@
                     currentFormat = 'ascii';
                     outputDiv.innerHTML = `<pre>${ascii.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`;
                 }
-                
-                document.getElementById('downloadBtn').style.display = 'inline-block';
+                document.getElementById('downloadControls').style.display = 'flex';
             } catch (error) {
-                console.error(error);
-                outputDiv.innerHTML = `<span style="color:#BD0909; background: white; padding: 5px;"><b>Error parsing diagram:</b><br>${error.message}</span>`;
-                document.getElementById('downloadBtn').style.display = 'none';
+                outputDiv.innerHTML = `<span style="color:#BD0909; background: white; padding: 5px;"><b>Error:</b><br>${error.message}</span>`;
+                document.getElementById('downloadControls').style.display = 'none';
             }
         });
 
-        document.getElementById('downloadBtn').addEventListener('click', () => {
-            if (!currentResult) return;
-            const blob = new Blob([currentResult], { type: currentFormat === 'svg' ? 'image/svg+xml' : 'text/plain' });
+        // --- DOWNLOAD LOGIC ---
+        function triggerDownload(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = currentFormat === 'svg' ? 'alation-diagram.svg' : 'alation-diagram.txt';
+            a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
+        }
+
+        document.getElementById('downloadSvgBtn').addEventListener('click', () => {
+            if (currentFormat === 'svg') triggerDownload(currentResult, 'alation-diagram.svg', 'image/svg+xml');
+            else triggerDownload(currentResult, 'alation-diagram.txt', 'text/plain');
+        });
+
+        document.getElementById('downloadCodeBtn').addEventListener('click', () => {
+            const code = document.getElementById('mermaidInput').value;
+            triggerDownload(code, 'diagram-source.mmd', 'text/plain');
+        });
+
+        // --- GITHUB API LOGIC ---
+        document.getElementById('toggleGitBtn').addEventListener('click', () => {
+            const panel = document.getElementById('github-panel');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        });
+
+        document.getElementById('commitBtn').addEventListener('click', async () => {
+            const repo = document.getElementById('repoPath').value;
+            const path = document.getElementById('filePath').value;
+            const token = document.getElementById('gitToken').value;
+            const code = document.getElementById('mermaidInput').value;
+            const statusNode = document.getElementById('gitStatus');
+
+            if (!repo || !path || !token) {
+                statusNode.innerHTML = '<span style="color:#BD0909;">Please fill out all GitHub fields.</span>';
+                return;
+            }
+
+            statusNode.innerHTML = 'Committing file...';
+
+            // Base64 encode the code for the GitHub API
+            // Note: btoa() fails on some unicode, this is a safe unicode encoder
+            const encodedContent = btoa(unescape(encodeURIComponent(code)));
+
+            try {
+                // Step 1: Check if file already exists to get its SHA (required for updates)
+                let sha = null;
+                const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (getRes.ok) {
+                    const fileData = await getRes.json();
+                    sha = fileData.sha;
+                }
+
+                // Step 2: Create or Update the file
+                const body = {
+                    message: `docs: update ${path} via Alation Diagram Tool`,
+                    content: encodedContent
+                };
+                if (sha) body.sha = sha;
+
+                const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github+json'
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (putRes.ok) {
+                    statusNode.innerHTML = '<span style="color:green;">✅ Successfully committed to repository!</span>';
+                    document.getElementById('gitToken').value = ''; // Clear token for safety
+                } else {
+                    const err = await putRes.json();
+                    statusNode.innerHTML = `<span style="color:#BD0909;">❌ API Error: ${err.message}</span>`;
+                }
+            } catch (err) {
+                statusNode.innerHTML = `<span style="color:#BD0909;">❌ Network Error: ${err.message}</span>`;
+            }
         });
     </script>
 </body>
