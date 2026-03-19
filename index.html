@@ -3,58 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alation Diagram Generator (AI Powered)</title>
+    <title>Alation Diagram Generator (Brand Compliant)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; background: #f9f9f9; }
+        body { font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; background: #f4f5f7; }
         .container { display: flex; gap: 20px; align-items: stretch; }
-        .panel { flex: 1; background: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; display: flex; flex-direction: column; }
+        .panel { flex: 1; background: white; padding: 20px; border-radius: 8px; border: 1px solid #e6eaed; display: flex; flex-direction: column; box-shadow: 0 4px 12px rgba(0,46,75,0.05); }
         
-        /* AI Box */
-        .ai-panel { background: #f4f8fb; border: 1px solid #5fa0d3; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
-        .ai-panel h3 { margin-top: 0; color: #333; display: flex; align-items: center; gap: 8px; }
+        /* AI Box styled with Alation Sea Foam & Neo Navy */
+        .ai-panel { background: #f2fcfb; border: 1px solid #80dedb; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .ai-panel h3 { margin-top: 0; color: #002e4b; display: flex; align-items: center; gap: 8px; }
         .ai-input-group { margin-bottom: 15px; }
-        .ai-input-group label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #444; }
+        .ai-input-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 5px; color: #35444d; }
         
         /* Inputs & Controls */
-        textarea { width: 100%; flex-grow: 1; min-height: 250px; font-family: monospace; padding: 10px; box-sizing: border-box; resize: vertical; border: 1px solid #ccc; white-space: pre; }
+        textarea { width: 100%; flex-grow: 1; min-height: 250px; font-family: monospace; padding: 10px; box-sizing: border-box; resize: vertical; border: 1px solid #ccd5db; white-space: pre; border-radius: 4px; }
         textarea.ai-text { min-height: 80px; font-family: inherit; white-space: normal; flex-grow: 0; }
         
         .controls { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-        button, input[type="text"], input[type="password"], input[type="file"] { padding: 8px 12px; font-size: 14px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+        button, input[type="text"], input[type="password"], input[type="file"] { padding: 8px 12px; font-size: 14px; border-radius: 4px; border: 1px solid #ccd5db; box-sizing: border-box; font-family: 'Public Sans', sans-serif; }
         
-        button.primary { background: #BD0909; color: white; border: none; cursor: pointer; font-weight: bold; }
-        button.primary:hover { background: #8a0707; }
-        button.ai-btn { background: #5fa0d3; color: white; border: none; cursor: pointer; font-weight: bold; width: 100%; padding: 12px; font-size: 16px; }
-        button.ai-btn:hover { background: #4a82b0; }
-        button.secondary { background: #fff; color: #333; cursor: pointer; }
-        button.secondary:hover { background: #f0f0f0; }
-        button.github { background: #24292e; color: white; border: none; cursor: pointer; font-weight: bold; }
-        button.github:hover { background: #000; }
+        /* Official Alation Buttons */
+        button.primary { background: #E36624; color: white; border: none; cursor: pointer; font-weight: 600; }
+        button.primary:hover { background: #D95F22; }
+        button.ai-btn { background: #002E4B; color: white; border: none; cursor: pointer; font-weight: 600; width: 100%; padding: 12px; font-size: 16px; }
+        button.ai-btn:hover { background: #1A445E; }
+        button.secondary { background: #fff; color: #35444d; cursor: pointer; font-weight: 500;}
+        button.secondary:hover { background: #f4f5f7; }
+        button.github { background: #35444d; color: white; border: none; cursor: pointer; font-weight: 600; }
+        button.github:hover { background: #002E4B; }
 
         /* Output Area */
-        #output-wrapper { margin-top: 20px; border: 1px dashed #ccc; padding: 20px; flex-grow: 1; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/O1gwxv///z+AwwgWjEGAcTIahwEAC60KBT72Z3kAAAAASUVORK5CYII='); overflow-x: auto; }
+        #output-wrapper { margin-top: 20px; border: 1px dashed #ccd5db; padding: 20px; flex-grow: 1; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/O1gwxv///z+AwwgWjEGAcTIahwEAC60KBT72Z3kAAAAASUVORK5CYII='); overflow-x: auto; border-radius: 4px; }
         #output { display: flex; justify-content: flex-start; } 
-        .note { font-size: 12px; color: #666; margin-top: 5px; }
+        .note { font-size: 12px; color: #626e75; margin-top: 5px; }
 
-        /* GitHub Modal */
-        #github-panel { display: none; margin-top: 15px; padding: 15px; background: #f6f8fa; border: 1px solid #d1d5da; border-radius: 6px; }
+        #github-panel { display: none; margin-top: 15px; padding: 15px; background: #f4f5f7; border: 1px solid #ccd5db; border-radius: 6px; }
         #github-panel input { width: 100%; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <h1>🎨 Alation Diagram Generator</h1>
-    <p>Generate transparent, brand-compliant SVGs using native Mermaid syntax and AI.</p>
+    <h1 style="color: #002E4B;">🎨 Alation Diagram Generator</h1>
+    <p style="color: #35444D;">Generate transparent, brand-compliant SVGs using native Mermaid syntax and AI.</p>
 
     <div class="ai-panel">
         <h3>✨ AI Diagram Assistant</h3>
-        <p style="font-size: 14px; color: #555; margin-bottom: 15px;">Describe a workflow in text, upload a reference image, or do both. The AI will build the Mermaid code for you.</p>
+        <p style="font-size: 14px; color: #4b5961; margin-bottom: 15px;">Describe a workflow or upload an architecture diagram. The AI will build the code and apply official Alation brand colors.</p>
         
         <div style="display: flex; gap: 20px; margin-bottom: 15px; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 300px;">
                 <div class="ai-input-group">
                     <label>1. Describe the Architecture (Optional if image provided)</label>
-                    <textarea class="ai-text" id="aiTextInput" placeholder="e.g., 'A user clicks checkout, which triggers the Order Service. The Order Service checks inventory in the Database...'"></textarea>
+                    <textarea class="ai-text" id="aiTextInput" placeholder="e.g., 'A user clicks checkout, which triggers the Order Service...'"></textarea>
                 </div>
             </div>
             <div style="flex: 1; min-width: 300px;">
@@ -69,23 +70,24 @@
             </div>
         </div>
         
-        <button class="ai-btn" id="generateAiBtn">✨ Generate Sequence Diagram Code</button>
+        <button class="ai-btn" id="generateAiBtn">✨ Generate Brand-Compliant Code</button>
         <p class="note" id="aiStatus" style="text-align: center; font-weight: bold; margin-top: 10px;"></p>
     </div>
 
     <div class="container">
         <div class="panel">
-            <h3 style="margin-top: 0;">1. Mermaid Code</h3>
+            <h3 style="margin-top: 0; color: #002E4B;">1. Mermaid Code</h3>
             <textarea id="mermaidInput">%%{init: { 
   'theme': 'base', 
   'themeVariables': { 
+    'fontFamily': 'Public Sans, Open Sans, sans-serif',
     'actorBkg': '#ffffff', 
-    'actorBorder': '#5fa0d3',
-    'actorTextColor': '#333333',
-    'signalColor': '#e56f3e',
-    'signalTextColor': '#333333',
-    'noteBkgColor': '#fdf1ea',
-    'noteBorderColor': '#f2b28c'
+    'actorBorder': '#002E4B',
+    'actorTextColor': '#002E4B',
+    'signalColor': '#E36624',
+    'signalTextColor': '#35444D',
+    'noteBkgColor': '#FFF6E5',
+    'noteBorderColor': '#FDA600'
   },
   'sequence': { 
     'actorWidth': 260,
@@ -93,7 +95,7 @@
   } 
 }}%%
 sequenceDiagram
-    box rgb(253,244,240) AWS Managed Services
+    box rgb(254,242,233) AWS Managed Services
         participant EB as "EventBridge"
     end
     
@@ -103,7 +105,7 @@ sequenceDiagram
                 <button class="primary" id="generateBtn">Render Diagram</button>
             </div>
             
-            <div class="controls" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+            <div class="controls" style="margin-top: 20px; border-top: 1px solid #e6eaed; padding-top: 15px;">
                 <button class="github" id="toggleGitBtn">🐙 Push Code to GitHub Repo</button>
             </div>
             <div id="github-panel">
@@ -116,7 +118,7 @@ sequenceDiagram
         </div>
 
         <div class="panel">
-            <h3 style="margin-top: 0;">2. Preview</h3>
+            <h3 style="margin-top: 0; color: #002E4B;">2. Preview</h3>
             <div class="controls" id="downloadControls" style="display:none; margin-bottom: 10px;">
                 <button class="secondary" id="downloadSvgBtn">⬇️ Download SVG</button>
                 <button class="secondary" id="downloadCodeBtn">⬇️ Download .mmd</button>
@@ -133,37 +135,38 @@ sequenceDiagram
 
         let currentSvg = '';
 
-        // --- AI LOGIC (Google Gemini API) ---
-       // --- AI LOGIC (Google Gemini API) ---
-        
-        // ✨ NEW: The Bulletproof Sanitizer Function
+        // ✨ ALATION BRAND SANITIZER FUNCTION
         function sanitizeMermaid(code) {
-            // 1. Remove markdown code blocks if the AI added them
             let cleanCode = code.replace(/^```mermaid\n?/m, '').replace(/```$/m, '').trim();
-
-            // 2. Fix spaces inside rgb() which breaks Mermaid box parsing
             cleanCode = cleanCode.replace(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/g, 'rgb($1,$2,$3)');
+            
+            // Neutralize dangerous angle brackets
+            cleanCode = cleanCode.replace(/<tenant>/g, '{tenant}')
+                                 .replace(/<metric>/g, '{metric}')
+                                 .replace(/<runId>/g, '{runId}')
+                                 .replace(/<version>/g, '{version}');
 
-            // 3. Fix Parentheses in Box Titles & Enforce Brand Colors
             let lines = cleanCode.split('\n');
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].trim().startsWith('box ')) {
-                    // Replace () with [] in the title line
                     lines[i] = lines[i].replace(/\(/g, '[').replace(/\)/g, ']');
                     
-                    // Force Alation Brand Colors if standard columns are detected
+                    // Force Official Alation 10% Tints
                     if (lines[i].match(/AWS\s*Managed/i)) {
-                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(253,244,240)');
+                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(254,242,233)'); // Orange 10%
                     } else if (lines[i].match(/AWS\s*Storage/i)) {
-                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(240,246,250)');
-                    } else if (lines[i].match(/Alation\s*SaaS/i)) {
-                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(253,241,234)');
+                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(230,234,237)'); // Neo Navy 10%
+                    } else if (lines[i].match(/Alation\s*SaaS|Compute/i)) {
+                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(255,246,229)'); // Sun Yellow 10%
+                    } else {
+                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(244,245,247)'); // Slate Gray 10% Default
                     }
                 }
             }
             return lines.join('\n');
         }
 
+        // --- AI LOGIC (Google Gemini API) ---
         document.getElementById('generateAiBtn').addEventListener('click', async () => {
             const apiKey = document.getElementById('aiApiKey').value.trim();
             const textInput = document.getElementById('aiTextInput').value.trim();
@@ -171,13 +174,12 @@ sequenceDiagram
             const statusNode = document.getElementById('aiStatus');
             const editor = document.getElementById('mermaidInput');
 
-            if (!apiKey) return statusNode.innerHTML = '<span style="color:#BD0909;">Please enter your Gemini API Key.</span>';
-            if (!textInput && !fileInput.files.length) return statusNode.innerHTML = '<span style="color:#BD0909;">Please provide text OR upload an image.</span>';
+            if (!apiKey) return statusNode.innerHTML = '<span style="color:#E36624;">Please enter your Gemini API Key.</span>';
+            if (!textInput && !fileInput.files.length) return statusNode.innerHTML = '<span style="color:#E36624;">Please provide text OR upload an image.</span>';
 
-            statusNode.innerHTML = '<span style="color:#5fa0d3;">✨ AI is analyzing... securing diagram consistency.</span>';
+            statusNode.innerHTML = '<span style="color:#002E4B;">✨ AI is analyzing... securing Alation brand compliance.</span>';
 
-            // ✨ UPGRADED STRICT PROMPT
-            let promptText = "Write the Mermaid.js sequence diagram code for this architecture. STRICT RULES:\n1. Use 'box rgb(r,g,b)' to group columns. DO NOT use spaces inside the rgb parentheses.\n2. DO NOT use parentheses () in the box titles. Use square brackets [] instead.\n3. Extract all text labels accurately.\n4. Output ONLY the raw Mermaid code. Do NOT wrap it in markdown code blocks like ```mermaid.";
+            let promptText = "Write the Mermaid.js sequence diagram code for this architecture. STRICT RULES:\n1. Use 'box rgb(r,g,b)' to group columns. DO NOT use spaces inside the rgb parentheses.\n2. DO NOT use parentheses () in the box titles. Use square brackets [] instead.\n3. Extract all text labels accurately.\n4. Output ONLY the raw Mermaid code. Do NOT wrap it in markdown code blocks like ```mermaid.\n5. NEVER use angle brackets (< >) for variables like tenant or metric. Use curly braces ({ }) instead.\n6. ALL participant aliases MUST be wrapped in double quotes (e.g., participant A as \"Name<br/>Line 2\"). Use <br/> for line breaks, NEVER actual newlines.";
             if (textInput) promptText += `\n\nUser Description:\n${textInput}`;
 
             let parts = [{ text: promptText }];
@@ -192,20 +194,19 @@ sequenceDiagram
 
                     if (response.ok) {
                         let rawCode = data.candidates[0].content.parts[0].text;
-                        
-                        // ✨ PASS THROUGH SANITIZER
                         let safeCode = sanitizeMermaid(rawCode);
 
-                        const initBlock = `%%{init: { \n  'theme': 'base', \n  'themeVariables': { \n    'actorBkg': '#ffffff', \n    'actorBorder': '#5fa0d3',\n    'actorTextColor': '#333333',\n    'signalColor': '#e56f3e',\n    'signalTextColor': '#333333',\n    'noteBkgColor': '#fdf1ea',\n    'noteBorderColor': '#f2b28c'\n  },\n  'sequence': { \n    'actorWidth': 260,\n    'messageMargin': 40\n  } \n}}%%\n`;
+                        // Official Brand Init Block
+                        const initBlock = `%%{init: { \n  'theme': 'base', \n  'themeVariables': { \n    'fontFamily': 'Public Sans, Open Sans, sans-serif',\n    'actorBkg': '#ffffff', \n    'actorBorder': '#002E4B',\n    'actorTextColor': '#002E4B',\n    'signalColor': '#E36624',\n    'signalTextColor': '#35444D',\n    'noteBkgColor': '#FFF6E5',\n    'noteBorderColor': '#FDA600'\n  },\n  'sequence': { \n    'actorWidth': 260,\n    'messageMargin': 40\n  } \n}}%%\n`;
                         
                         editor.value = initBlock + safeCode;
-                        statusNode.innerHTML = '<span style="color:green;">✅ Code generated and sanitized!</span>';
-                        document.getElementById('generateBtn').click(); // Auto-render
+                        statusNode.innerHTML = '<span style="color:#E36624;">✅ Code generated and brand-sanitized!</span>';
+                        document.getElementById('generateBtn').click(); 
                     } else {
-                        statusNode.innerHTML = `<span style="color:#BD0909;">❌ API Error: ${data.error.message}</span>`;
+                        statusNode.innerHTML = `<span style="color:#E36624;">❌ API Error: ${data.error.message}</span>`;
                     }
                 } catch (err) {
-                    statusNode.innerHTML = `<span style="color:#BD0909;">❌ Network Error: ${err.message}</span>`;
+                    statusNode.innerHTML = `<span style="color:#E36624;">❌ Network Error: ${err.message}</span>`;
                 }
             };
 
@@ -233,7 +234,7 @@ sequenceDiagram
                 outputDiv.innerHTML = svg; 
                 document.getElementById('downloadControls').style.display = 'flex';
             } catch (error) {
-                outputDiv.innerHTML = `<span style="color:#BD0909; background: white; padding: 5px;"><b>Syntax Error:</b><br>${error.message}</span>`;
+                outputDiv.innerHTML = `<span style="color:#E36624; background: white; padding: 5px;"><b>Syntax Error:</b><br>${error.message}</span>`;
                 document.getElementById('downloadControls').style.display = 'none';
             }
         });
@@ -264,7 +265,7 @@ sequenceDiagram
             const code = document.getElementById('mermaidInput').value;
             const statusNode = document.getElementById('gitStatus');
 
-            if (!repo || !path || !token) return statusNode.innerHTML = '<span style="color:#BD0909;">Please fill out all fields.</span>';
+            if (!repo || !path || !token) return statusNode.innerHTML = '<span style="color:#E36624;">Please fill out all fields.</span>';
 
             statusNode.innerHTML = 'Committing file...';
             try {
@@ -285,10 +286,10 @@ sequenceDiagram
                     statusNode.innerHTML = '<span style="color:green;">✅ Successfully committed to repository!</span>';
                     document.getElementById('gitToken').value = ''; 
                 } else {
-                    statusNode.innerHTML = `<span style="color:#BD0909;">❌ API Error: ${(await putRes.json()).message}</span>`;
+                    statusNode.innerHTML = `<span style="color:#E36624;">❌ API Error: ${(await putRes.json()).message}</span>`;
                 }
             } catch (err) {
-                statusNode.innerHTML = `<span style="color:#BD0909;">❌ Network Error: ${err.message}</span>`;
+                statusNode.innerHTML = `<span style="color:#E36624;">❌ Network Error: ${err.message}</span>`;
             }
         });
     </script>
