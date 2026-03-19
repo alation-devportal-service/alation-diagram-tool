@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alation Diagram Generator</title>
+    <title>Alation Diagram Generator (Native)</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; background: #f9f9f9; }
         .container { display: flex; gap: 20px; }
@@ -16,9 +16,9 @@
         code { background: #fff; padding: 2px 5px; border-radius: 4px; border: 1px solid #ccc; }
 
         /* Inputs & Controls */
-        textarea { width: 100%; height: 300px; font-family: monospace; padding: 10px; box-sizing: border-box; resize: vertical; border: 1px solid #ccc; }
+        textarea { width: 100%; height: 350px; font-family: monospace; padding: 10px; box-sizing: border-box; resize: vertical; border: 1px solid #ccc; white-space: pre; }
         .controls { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-        select, button, input { padding: 8px 12px; font-size: 14px; border-radius: 4px; border: 1px solid #ccc; }
+        button, input { padding: 8px 12px; font-size: 14px; border-radius: 4px; border: 1px solid #ccc; }
         
         button.primary { background: #BD0909; color: white; border: none; cursor: pointer; font-weight: bold; }
         button.primary:hover { background: #8a0707; }
@@ -28,9 +28,8 @@
         button.github:hover { background: #000; }
 
         /* Output Area */
-        #output-wrapper { margin-top: 20px; border: 1px dashed #ccc; padding: 20px; min-height: 300px; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/O1gwxv///z+AwwgWjEGAcTIahwEAC60KBT72Z3kAAAAASUVORK5CYII='); }
-        #output { display: flex; justify-content: flex-start; max-width: 672px; } 
-        pre { font-family: monospace; white-space: pre-wrap; margin: 0; }
+        #output-wrapper { margin-top: 20px; border: 1px dashed #ccc; padding: 20px; min-height: 300px; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/O1gwxv///z+AwwgWjEGAcTIahwEAC60KBT72Z3kAAAAASUVORK5CYII='); overflow-x: auto; }
+        #output { display: flex; justify-content: flex-start; } 
         .note { font-size: 12px; color: #666; margin-top: 5px; }
 
         /* GitHub Modal */
@@ -41,7 +40,7 @@
 <body>
 
     <h1>🎨 Alation Diagram Generator</h1>
-    <p>Generate transparent, left-aligned, brand-compliant SVGs for your documentation.</p>
+    <p>Generate transparent, brand-compliant SVGs using native Mermaid syntax.</p>
 
     <details>
         <summary>💡 Pro-Tip: How to generate Mermaid code from an image</summary>
@@ -49,7 +48,7 @@
             <p>You can use AI (like Gemini, ChatGPT, or Claude) to instantly convert a screenshot of an old architecture diagram into editable Mermaid code.</p>
             <p><b>Step 1:</b> Upload your screenshot to the AI.<br>
             <b>Step 2:</b> Paste this exact prompt:<br>
-            <code>Analyze this diagram and write the Mermaid.js code to recreate it. Please extract all the text labels accurately, map the directional arrows correctly, and use subgraphs if there are distinct grouped sections.</code><br>
+            <code>Analyze this diagram and write the Mermaid.js sequence diagram code to recreate it. Please extract all the text labels accurately, map the directional arrows correctly, and use "box rgb(r,g,b)" to group columns.</code><br>
             <b>Step 3:</b> Paste the AI's output into the box below and click Generate!</p>
         </div>
     </details>
@@ -57,21 +56,30 @@
     <div class="container">
         <div class="panel">
             <h3>1. Input Mermaid Code</h3>
-            <textarea id="mermaidInput">graph TD
-  A[Start] --> B{Decision}
-  B -->|Yes| C[Process]
-  B -->|No| D[End]</textarea>
+            <textarea id="mermaidInput">%%{init: { 
+  'theme': 'base', 
+  'themeVariables': { 
+    'actorBkg': '#ffffff', 
+    'actorBorder': '#5fa0d3',
+    'actorTextColor': '#333333',
+    'signalColor': '#e56f3e',
+    'signalTextColor': '#333333',
+    'noteBkgColor': '#fdf1ea',
+    'noteBorderColor': '#f2b28c'
+  },
+  'sequence': { 
+    'actorWidth': 260,
+    'messageMargin': 40
+  } 
+}}%%
+sequenceDiagram
+    box rgb(253,244,240) AWS Managed Services
+        participant EB as "EventBridge"
+    end
+    
+    EB->>EB: Your code here</textarea>
             
             <div class="controls">
-                <select id="formatSelect">
-                    <option value="svg">SVG Image</option>
-                    <option value="ascii">ASCII Text</option>
-                </select>
-                <select id="themeSelect">
-                    <option value="alation">Alation Standard (Red)</option>
-                    <option value="github-light">GitHub Light</option>
-                    <option value="nord">Nord</option>
-                </select>
                 <button class="primary" id="generateBtn">Generate Diagram</button>
             </div>
             
@@ -96,43 +104,34 @@
             <div id="output-wrapper">
                 <div id="output"><span style="color: #888; background: white; padding: 5px;">Preview will appear here...</span></div>
             </div>
-            <p class="note">Note: Output is constrained to 672px width to preview page loading optimization rules.</p>
         </div>
     </div>
 
     <script type="module">
-        import { renderMermaidSVG, renderMermaidASCII, THEMES } from 'https://esm.sh/beautiful-mermaid@latest';
-
-        const alationTheme = { bg: '#ffffff', fg: '#333333', accent: '#BD0909', border: '#888888' };
+        // Import OFFICIAL Mermaid instead of beautiful-mermaid
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
         
-        let currentResult = '';
-        let currentFormat = '';
+        // Initialize Mermaid
+        mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
+
+        let currentSvg = '';
 
         // --- RENDER LOGIC ---
-        document.getElementById('generateBtn').addEventListener('click', () => {
+        document.getElementById('generateBtn').addEventListener('click', async () => {
             const code = document.getElementById('mermaidInput').value;
-            const format = document.getElementById('formatSelect').value;
-            const themeName = document.getElementById('themeSelect').value;
             const outputDiv = document.getElementById('output');
 
             outputDiv.innerHTML = '<span style="color: #888; background: white; padding: 5px;">Generating...</span>';
 
             try {
-                if (format === 'svg') {
-                    let activeTheme = themeName === 'alation' ? alationTheme : (THEMES[themeName] || THEMES['github-light']);
-                    const svg = renderMermaidSVG(code, { ...activeTheme, transparent: true });
-                    currentResult = svg;
-                    currentFormat = 'svg';
-                    outputDiv.innerHTML = svg; 
-                } else {
-                    const ascii = renderMermaidASCII(code, { useAscii: true });
-                    currentResult = ascii;
-                    currentFormat = 'ascii';
-                    outputDiv.innerHTML = `<pre>${ascii.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`;
-                }
+                // Let Mermaid official engine render the SVG
+                const { svg } = await mermaid.render('mermaid-generated-svg', code);
+                currentSvg = svg;
+                outputDiv.innerHTML = svg; 
                 document.getElementById('downloadControls').style.display = 'flex';
             } catch (error) {
-                outputDiv.innerHTML = `<span style="color:#BD0909; background: white; padding: 5px;"><b>Error:</b><br>${error.message}</span>`;
+                // Mermaid throws errors if syntax is bad
+                outputDiv.innerHTML = `<span style="color:#BD0909; background: white; padding: 5px;"><b>Syntax Error:</b><br>${error.message}</span>`;
                 document.getElementById('downloadControls').style.display = 'none';
             }
         });
@@ -149,8 +148,7 @@
         }
 
         document.getElementById('downloadSvgBtn').addEventListener('click', () => {
-            if (currentFormat === 'svg') triggerDownload(currentResult, 'alation-diagram.svg', 'image/svg+xml');
-            else triggerDownload(currentResult, 'alation-diagram.txt', 'text/plain');
+            triggerDownload(currentSvg, 'alation-diagram.svg', 'image/svg+xml');
         });
 
         document.getElementById('downloadCodeBtn').addEventListener('click', () => {
@@ -158,7 +156,7 @@
             triggerDownload(code, 'diagram-source.mmd', 'text/plain');
         });
 
-        // --- GITHUB API LOGIC ---
+        // --- GITHUB API LOGIC (Remains exactly the same) ---
         document.getElementById('toggleGitBtn').addEventListener('click', () => {
             const panel = document.getElementById('github-panel');
             panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
@@ -177,13 +175,9 @@
             }
 
             statusNode.innerHTML = 'Committing file...';
-
-            // Base64 encode the code for the GitHub API
-            // Note: btoa() fails on some unicode, this is a safe unicode encoder
             const encodedContent = btoa(unescape(encodeURIComponent(code)));
 
             try {
-                // Step 1: Check if file already exists to get its SHA (required for updates)
                 let sha = null;
                 const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -194,25 +188,18 @@
                     sha = fileData.sha;
                 }
 
-                // Step 2: Create or Update the file
-                const body = {
-                    message: `docs: update ${path} via Alation Diagram Tool`,
-                    content: encodedContent
-                };
+                const body = { message: `docs: update ${path} via Alation Diagram Tool`, content: encodedContent };
                 if (sha) body.sha = sha;
 
                 const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
                     method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/vnd.github+json'
-                    },
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' },
                     body: JSON.stringify(body)
                 });
 
                 if (putRes.ok) {
                     statusNode.innerHTML = '<span style="color:green;">✅ Successfully committed to repository!</span>';
-                    document.getElementById('gitToken').value = ''; // Clear token for safety
+                    document.getElementById('gitToken').value = ''; 
                 } else {
                     const err = await putRes.json();
                     statusNode.innerHTML = `<span style="color:#BD0909;">❌ API Error: ${err.message}</span>`;
