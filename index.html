@@ -135,11 +135,11 @@ sequenceDiagram
 
         let currentSvg = '';
 
-        // ✨ ULTIMATE ALATION BRAND SANITIZER FUNCTION
+        // ✨ ULTIMATE ALATION BRAND SANITIZER FUNCTION (Demo-Ready)
         function sanitizeMermaid(code) {
             let cleanCode = code.replace(/^```mermaid\n?/m, '').replace(/```$/m, '').trim();
             
-            // 1. Fix literal newlines inside quotes (Fixes the compressed boxes glitch)
+            // 1. Fix literal newlines inside quotes
             cleanCode = cleanCode.replace(/"([^"]*)"/g, function(match, innerText) {
                 return '"' + innerText.replace(/\r?\n/g, '<br/>') + '"';
             });
@@ -153,28 +153,35 @@ sequenceDiagram
                                  .replace(/<runId>/g, '{runId}')
                                  .replace(/<version>/g, '{version}');
 
-            // 4. Convert Self-Loops to Notes (e.g., Pod->>Pod: Train Model -> Note over Pod: Train Model)
+            // 4. Convert Self-Loops to Notes
             cleanCode = cleanCode.replace(/([a-zA-Z0-9_]+)(?:->>|-->>)\1:\s*(.*)/g, 'Note over $1: $2');
 
-            // 5. Force Perfect Box Titles & Colors
+            // ✨ NEW 5. Fix Empty Arrow Labels that crash Mermaid (e.g., "A->>B: \n")
+            // This looks for a colon followed by empty space at the end of a line and adds a safe placeholder
+            cleanCode = cleanCode.replace(/:\s*$/gm, ': (Action)');
+
+            // ✨ UPGRADED 6. Force Perfect Box Titles & Colors (Nukes leftover brackets)
             let lines = cleanCode.split('\n');
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].trim().startsWith('box ')) {
+                    // First, aggressively strip away ANY color formatting the AI tried to guess
+                    lines[i] = lines[i].replace(/box\s+(rgb\([^)]+\)|rgba\([^)]+\)|\[[^\]]+\]|#[a-zA-Z0-9]+|\w+)/i, 'box');
+
+                    // Now, safely inject the correct Alation brand colors
                     if (lines[i].match(/AWS\s*Managed/i)) {
-                        lines[i] = '    box rgb(254,242,233) AWS Managed Services'; // Orange 10%
-                    } else if (lines[i].match(/AWS\s*Storage/i)) {
-                        lines[i] = '    box rgb(230,234,237) AWS Storage'; // Neo Navy 10%
+                        lines[i] = lines[i].replace('box', 'box rgb(254,242,233)'); // Orange 10%
+                    } else if (lines[i].match(/AWS\s*Storage|AWS\s*Services/i)) {
+                        lines[i] = lines[i].replace('box', 'box rgb(230,234,237)'); // Neo Navy 10%
                     } else if (lines[i].match(/Alation\s*SaaS|Compute/i)) {
-                        lines[i] = '    box rgb(255,246,229) Alation SaaS [Compute]'; // Sun Yellow 10%
+                        lines[i] = lines[i].replace('box', 'box rgb(255,246,229)'); // Sun Yellow 10%
                     } else {
                         lines[i] = lines[i].replace(/\(/g, '[').replace(/\)/g, ']');
-                        lines[i] = lines[i].replace(/box\s+(rgb\([^\)]+\)|\[[^\]]+\]|#[a-zA-Z0-9]+|\w+)/i, 'box rgb(244,245,247)'); // Slate Gray 10%
+                        lines[i] = lines[i].replace('box', 'box rgb(244,245,247)'); // Slate Gray 10% Default
                     }
                 }
             }
             return lines.join('\n');
         }
-
         // --- AI LOGIC (Google Gemini API) ---
         document.getElementById('generateAiBtn').addEventListener('click', async () => {
             const apiKey = document.getElementById('aiApiKey').value.trim();
