@@ -183,58 +183,74 @@ sequenceDiagram
             return lines.join('\n');
         }
         // --- AI LOGIC (Google Gemini API) ---
-        document.getElementById('generateAiBtn').addEventListener('click', async () => {
+        // --- RENDER & AUTO-REPAIR LOGIC ---
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            const code = document.getElementById('mermaidInput').value;
+            const outputDiv = document.getElementById('output');
             const apiKey = document.getElementById('aiApiKey').value.trim();
-            const textInput = document.getElementById('aiTextInput').value.trim();
-            const fileInput = document.getElementById('imageUpload');
             const statusNode = document.getElementById('aiStatus');
-            const editor = document.getElementById('mermaidInput');
+            
+            outputDiv.innerHTML = '<span style="color: #888; background: white; padding: 5px;">Generating...</span>';
 
-            if (!apiKey) return statusNode.innerHTML = '<span style="color:#E36624;">Please enter your Gemini API Key.</span>';
-            if (!textInput && !fileInput.files.length) return statusNode.innerHTML = '<span style="color:#E36624;">Please provide text OR upload an image.</span>';
+            try {
+                // Attempt 1: Standard Render
+                const { svg } = await mermaid.render('mermaid-generated-svg', code);
+                currentSvg = svg;
+                outputDiv.innerHTML = svg; 
+                document.getElementById('downloadControls').style.display = 'flex';
+                statusNode.innerHTML = '<span style="color:green;">✅ Render successful!</span>';
+            } catch (error) {
+                // 🚨 ERROR CAUGHT: Trigger Auto-Repair if API key is present
+                document.getElementById('downloadControls').style.display = 'none';
+                
+                if (!apiKey) {
+                    // If they manually edited and broke it without an API key, just show the error
+                    outputDiv.innerHTML = `<span style="color:#E36624; background: white; padding: 5px;"><b>Syntax Error:</b><br>${error.message}</span>`;
+                    return;
+                }
 
-            statusNode.innerHTML = '<span style="color:#002E4B;">✨ AI is analyzing... securing Alation brand compliance.</span>';
+                statusNode.innerHTML = '<span style="color:#E36624;">⚠️ Syntax error detected. AI is attempting to auto-repair...</span>';
+                outputDiv.innerHTML = '<span style="color: #888; background: white; padding: 5px;">Auto-repairing diagram...</span>';
 
-            let promptText = "Write the Mermaid.js sequence diagram code for this architecture. STRICT RULES:\n1. Use 'box rgb(r,g,b)' to group columns.\n2. DO NOT use parentheses () in the group names. Use square brackets [] instead.\n3. Extract all text labels accurately.\n4. Output ONLY the raw Mermaid code. Do NOT wrap it in markdown.\n5. NEVER use angle brackets (< >) for variables like tenant or metric. Use curly braces ({ }) instead.\n6. ALL participant aliases MUST be wrapped in double quotes (e.g., participant A as \"Name<br/>Line 2\"). You MUST use <br/> for line breaks inside quotes. NEVER use actual Enter/Return newlines inside quotes.\n7. For internal processing steps, DO NOT use self-looping arrows (e.g., A->>A). You MUST use 'Note over [Participant]: [Step]' instead.\n8. DO NOT use 'rect' tags. Never attempt to draw background rectangles for phases.\n9. DO NOT use 'note over A, B' spanning multiple participants for phase titles. If you must indicate a phase, attach the note to a SINGLE participant (e.g., 'Note over A: Phase 1').\n10. Group all participants belonging to the same system into a SINGLE box. Do not create multiple boxes with the exact same name.";            
-            if (textInput) promptText += `\n\nUser Description:\n${textInput}`;
+                // Build the Repair Prompt
+                const repairPrompt = `The following Mermaid.js sequence diagram code threw a syntax error. \n\nERROR MESSAGE:\n${error.message}\n\nBROKEN CODE:\n${code}\n\nPlease fix the code so it renders correctly. Output ONLY the raw, fixed Mermaid code. Do NOT wrap it in markdown blocks.`;
 
-            let parts = [{ text: promptText }];
-
-            const callGeminiApi = async (apiParts) => {
-                const payload = { contents: [{ parts: apiParts }] };
                 try {
                     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ contents: [{ parts: [{ text: repairPrompt }] }] })
                     });
+                    
                     const data = await response.json();
 
                     if (response.ok) {
-                        let rawCode = data.candidates[0].content.parts[0].text;
-                        let safeCode = sanitizeMermaid(rawCode);
-
-                        // Official Brand Init Block
-                        const initBlock = `%%{init: { \n  'theme': 'base', \n  'themeVariables': { \n    'fontFamily': 'Public Sans, Open Sans, sans-serif',\n    'actorBkg': '#ffffff', \n    'actorBorder': '#002E4B',\n    'actorTextColor': '#002E4B',\n    'signalColor': '#E36624',\n    'signalTextColor': '#35444D',\n    'noteBkgColor': '#FFF6E5',\n    'noteBorderColor': '#FDA600'\n  },\n  'sequence': { \n    'actorWidth': 300,\n    'messageMargin': 40\n  } \n}}%%\n`;
+                        let fixedCode = data.candidates[0].content.parts[0].text;
                         
-                        editor.value = initBlock + safeCode;
-                        statusNode.innerHTML = '<span style="color:#E36624;">✅ Code generated and brand-sanitized!</span>';
-                        document.getElementById('generateBtn').click(); 
+                        // Pass the fixed code back through our brand sanitizer just in case!
+                        fixedCode = sanitizeMermaid(fixedCode);
+                        
+                        // Update the editor with the fixed code
+                        document.getElementById('mermaidInput').value = fixedCode;
+                        
+                        // Try rendering one last time
+                        try {
+                            const { svg: fixedSvg } = await mermaid.render('mermaid-repaired-svg', fixedCode);
+                            currentSvg = fixedSvg;
+                            outputDiv.innerHTML = fixedSvg;
+                            document.getElementById('downloadControls').style.display = 'flex';
+                            statusNode.innerHTML = '<span style="color:green;">✅ AI successfully repaired and rendered the diagram!</span>';
+                        } catch (finalError) {
+                            // If it still fails, surrender and show the error
+                            outputDiv.innerHTML = `<span style="color:#E36624; background: white; padding: 5px;"><b>Auto-Repair Failed. Final Error:</b><br>${finalError.message}</span>`;
+                            statusNode.innerHTML = '<span style="color:#E36624;">❌ Auto-repair could not resolve the issue. Manual fix required.</span>';
+                        }
                     } else {
-                        statusNode.innerHTML = `<span style="color:#E36624;">❌ API Error: ${data.error.message}</span>`;
+                        outputDiv.innerHTML = `<span style="color:#E36624;">Repair API Error: ${data.error.message}</span>`;
                     }
-                } catch (err) {
-                    statusNode.innerHTML = `<span style="color:#E36624;">❌ Network Error: ${err.message}</span>`;
+                } catch (repairErr) {
+                    outputDiv.innerHTML = `<span style="color:#E36624;">Network Error during repair: ${repairErr.message}</span>`;
                 }
-            };
-
-            if (fileInput.files.length > 0) {
-                const reader = new FileReader();
-                reader.readAsDataURL(fileInput.files[0]);
-                reader.onload = () => {
-                    parts.push({ inline_data: { mime_type: fileInput.files[0].type, data: reader.result.split(',')[1] } });
-                    callGeminiApi(parts);
-                };
-            } else {
-                callGeminiApi(parts);
             }
         });
 
